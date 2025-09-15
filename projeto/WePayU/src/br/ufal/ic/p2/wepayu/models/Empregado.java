@@ -36,6 +36,8 @@ public class Empregado {
 
     public Double getComissao() { return comissao; }
 
+    public String getSindicalizado() { return "false"; } // Implementar depois
+
     // Setters opcionais
     public void setComissao(Double comissao) { this.comissao = comissao; }
 }
