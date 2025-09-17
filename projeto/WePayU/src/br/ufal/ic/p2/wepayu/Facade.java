@@ -2,12 +2,17 @@
 
     import br.ufal.ic.p2.wepayu.Exception.*;
     import br.ufal.ic.p2.wepayu.models.Empregado;
+    import br.ufal.ic.p2.wepayu.models.RegistroDeHoras;
 
     import java.io.*;
     import java.nio.charset.StandardCharsets;
     import java.nio.file.Files;
     import java.nio.file.Path;
     import java.nio.file.Paths;
+    import java.time.LocalDate;
+    import java.time.format.DateTimeFormatter;
+    import java.time.format.DateTimeParseException;
+    import java.time.format.ResolverStyle;
     import java.util.ArrayList;
     import java.util.HashMap;
     import java.util.List;
@@ -181,6 +186,146 @@
             }
 
             empregadosMap.remove(emp);
+        }
+
+        public void lancaCartao(String emp, String dataStr, String horasStr) throws EmpregadoNaoExisteException {
+            if (emp == null || emp.trim().isEmpty()) {
+                throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
+            }
+            Empregado e = getEmpregadoPorId(emp);
+            if (e == null) {
+                throw new EmpregadoNaoExisteException("Empregado nao existe.");
+            }
+
+            if (!"horista".equals(e.getTipo()))
+                throw new NaoEhHoristaException("Empregado nao eh horista.");
+
+            LocalDate data;
+            try {
+                data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/yyyy"));
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException("Data invalida.");
+            }
+
+            double horas = Double.parseDouble(horasStr.replace(',', '.'));
+            if (horas <= 0)
+                throw new IllegalArgumentException("Horas devem ser positivas.");
+
+            double normais = Math.min(horas, 8);
+            double extras = Math.max(0, horas - 8);
+
+            RegistroDeHoras registroExistente = null;
+            for (RegistroDeHoras r : e.getRegistrosDeHoras()) {
+                if (r.getData().equals(data)) {
+                    registroExistente = r;
+                    break;
+                }
+            }
+
+            if (registroExistente != null) {
+                registroExistente.SetHorasNormais(normais);
+                registroExistente.SetHorasExtras(extras);
+            } else {
+                e.setRegistroDeHoras(new RegistroDeHoras(data, normais, extras));
+            }
+        }
+
+        public String getHorasNormaisTrabalhadas(String emp, String dataInicial, String dataFinal) throws EmpregadoNaoExisteException {
+            if (emp == null || emp.trim().isEmpty()) {
+                throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
+            }
+
+            Empregado e = getEmpregadoPorId(emp);
+            if (e == null) {
+                throw new EmpregadoNaoExisteException("Empregado nao existe.");
+            }
+
+            if (!"horista".equals(e.getTipo())) {
+                throw new NaoEhHoristaException("Empregado nao eh horista.");
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu")
+                    .withResolverStyle(ResolverStyle.STRICT);
+
+            LocalDate inicial;
+            LocalDate fim;
+            try {
+                inicial = LocalDate.parse(dataInicial, formatter);
+            } catch (DateTimeParseException ex) {
+                throw new DataInvalidaException("Data inicial invalida.");
+            }
+
+            try {
+                fim = LocalDate.parse(dataFinal, formatter);
+            } catch (DateTimeParseException ex) {
+                throw new DataInvalidaException("Data final invalida.");
+            }
+
+            if (inicial.isAfter(fim)) {
+                throw new IllegalArgumentException("Data inicial nao pode ser posterior aa data final.");
+            }
+
+            double total = 0;
+            for (RegistroDeHoras r : e.getRegistrosDeHoras()) {
+                if (!r.getData().isBefore(inicial) && r.getData().isBefore(fim)) {
+                    total += r.getHorasNormais();
+                }
+            }
+
+            if (total == (int) total) {
+                return String.valueOf((int) total);
+            } else {
+                return String.format("%.1f", total).replace('.', ',');
+            }
+        }
+
+        // Soma horas extras no intervalo
+        public String getHorasExtrasTrabalhadas(String emp, String dataInicial, String dataFinal) throws EmpregadoNaoExisteException {
+            if (emp == null || emp.trim().isEmpty()) {
+                throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
+            }
+
+            Empregado e = getEmpregadoPorId(emp);
+            if (e == null) {
+                throw new EmpregadoNaoExisteException("Empregado nao existe.");
+            }
+            if (!"horista".equals(e.getTipo())) {
+                throw new NaoEhHoristaException("Empregado nao eh horista.");
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu")
+                    .withResolverStyle(ResolverStyle.STRICT);
+
+            LocalDate inicial;
+            LocalDate fim;
+            try {
+                inicial = LocalDate.parse(dataInicial, formatter);
+            } catch (DateTimeParseException ex) {
+                throw new DataInvalidaException("Data inicial invalida.");
+            }
+
+            try {
+                fim = LocalDate.parse(dataFinal, formatter);
+            } catch (DateTimeParseException ex) {
+                throw new DataInvalidaException("Data final invalida.");
+            }
+
+            if (inicial.isAfter(fim)) {
+                throw new IllegalArgumentException("Data inicial nao pode ser posterior aa data final.");
+            }
+
+            double total = 0;
+            for (RegistroDeHoras r : e.getRegistrosDeHoras()) {
+                if (!r.getData().isBefore(inicial) && r.getData().isBefore(fim)) {
+                    total += r.getHorasExtras();
+                }
+            }
+
+            if (total == (int) total) {
+                return String.valueOf((int) total);
+            } else {
+                return String.format("%.1f", total).replace('.', ',');
+            }
         }
 
         private void salvarEmpregados() {
