@@ -3,23 +3,34 @@
     import br.ufal.ic.p2.wepayu.Exception.*;
     import br.ufal.ic.p2.wepayu.models.Empregado;
 
-    import java.util.HashMap;
-    import java.util.Map;
+    import java.io.*;
+    import java.nio.charset.StandardCharsets;
+    import java.nio.file.Files;
+    import java.nio.file.Path;
+    import java.nio.file.Paths;
     import java.util.ArrayList;
-    import java.util.List; // se você quiser usar List como tipo genérico
+    import java.util.HashMap;
+    import java.util.List;
+    import java.util.Map;
 
 
     public class Facade {
-        private Map<String, Empregado> empregadosMap = new HashMap<>();
-        private int proximoId = 1; // para gerar IDs automáticos
+        private static Map<String, Empregado> empregadosMap = new HashMap<>();
+        private static int proximoId = 1; // para gerar IDs automáticos
+        private final String ARQUIVO = "empregados.csv"; // arquivo de persistência
+
+        public Facade() throws EmpregadoNaoExisteException{
+            carregarEmpregados();
+        }
 
         public void zerarSistema() {
             empregadosMap.clear();
             proximoId = 1;
+            salvarEmpregados();
         }
 
         public void encerrarSistema() {
-            zerarSistema();
+            salvarEmpregados();
         }
 
         public String criarEmpregado(String nome, String endereco, String tipo, String salarioString) throws EmpregadoNaoExisteException {
@@ -31,14 +42,13 @@
                 throw new EnderecoNuloException("Endereco nao pode ser nulo.");
             }
 
-            if (tipo.equalsIgnoreCase("comissionado") ) {
-
-                throw new TipoNaoAplicavelException("Tipo nao aplicavel.");
-            }
 
             if (!tipo.equalsIgnoreCase("horista") && !tipo.equalsIgnoreCase("assalariado")) {
-
-                throw new TipoInvalidoException("Tipo invalido.");
+                if (tipo.equalsIgnoreCase("comissionado") ) {
+                    throw new TipoNaoAplicavelException("Tipo nao aplicavel.");
+                } else {
+                    throw new TipoInvalidoException("Tipo invalido.");
+                }
             }
 
             if (salarioString == null || salarioString.trim().isEmpty()) {
@@ -56,11 +66,8 @@
 
             String id = "id" + proximoId++;
             Empregado e = new Empregado(nome, endereco, tipo.toLowerCase(), salario);
-
-            // Valores padrão
-            if (tipo.equalsIgnoreCase("comissionado")) e.setComissao(0.0);
-
             empregadosMap.put(id, e);
+            salvarEmpregados();
             return id;
         }
 
@@ -82,33 +89,36 @@
             }
 
             if (salarioString == null || salarioString.trim().isEmpty()) {
-                throw new IllegalArgumentException("Salario nao pode ser nulo.");
+                throw new SalarioNuloException("Salario nao pode ser nulo.");
             }
 
             double salario;
             try {
                 salario = Double.parseDouble(salarioString.replace(',', '.'));
             } catch (NumberFormatException ex) {
-                throw new IllegalArgumentException("Salario deve ser numerico.");
+                throw new SalarioNaoNumericoException("Salario deve ser numerico.");
             }
-            if (salario < 0) throw new IllegalArgumentException("Salario deve ser nao-negativo.");
+
+            if (salario < 0) throw new SalarioNegativoException("Salario deve ser nao-negativo.");
 
             // valida comissao
             if (comissaoString == null || comissaoString.trim().isEmpty()) {
-                throw new IllegalArgumentException("Comissao nao pode ser nula.");
+                throw new ComissaoNulaException("Comissao nao pode ser nula.");
             }
+
             double comissao;
             try {
                 comissao = Double.parseDouble(comissaoString.replace(',', '.'));
             } catch (NumberFormatException ex) {
-                throw new IllegalArgumentException("Comissao deve ser numerica.");
+                throw new ComissaoNaoNumericaException("Comissao deve ser numerica.");
             }
-            if (comissao < 0) throw new IllegalArgumentException("Comissao deve ser nao-negativa.");
+            if (comissao < 0) throw new ComissaoNegativaException("Comissao deve ser nao-negativa.");
 
             String id = "id" + proximoId++;
             Empregado e = new Empregado(nome, endereco, tipo.toLowerCase(), salario);
             e.setComissao(comissao);
             empregadosMap.put(id, e);
+            salvarEmpregados();
             return id;
         }
 
@@ -128,8 +138,101 @@
                 case "tipo": return e.getTipo();
                 case "salario": return String.format("%.2f", (double) e.getSalario()).replace('.', ',');
                 case "comissao": return String.format("%.2f", (double) e.getComissao()).replace('.', ',');
-                case "sindicalizado": return e.getSindicalizado(); // implementar depois
+                case "sindicalizado": return String.valueOf(e.getSindicalizado()); // implementar depois
                 default: throw new AtributoNaoExisteException("Atributo nao existe.");
+            }
+        }
+
+        public String getEmpregadoPorNome(String nome, int indice) throws EmpregadoNaoExisteException {
+            if (nome == null || nome.trim().isEmpty()) {
+                throw new EmpregadoNaoExisteException("Nao ha empregado com esse nome.");
+            }
+
+            // procura todos com esse nome
+            List<String> idsEncontrados = new ArrayList<>();
+            for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+                if (entry.getValue().getNome().equals(nome)) {
+                    idsEncontrados.add(entry.getKey());
+                }
+            }
+
+            if (idsEncontrados.isEmpty() || indice < 1 || indice > idsEncontrados.size()) {
+                throw new EmpregadoNaoExisteException("Nao ha empregado com esse nome.");
+            }
+
+            // retorna o ID correspondente
+            return idsEncontrados.get(indice - 1);
+        }
+
+        private void salvarEmpregados() {
+            try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO))) {
+                for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+                    Empregado e = entry.getValue();
+                    pw.printf("%s;%s;%s;%s;%.2f;%.2f;%b%n",
+                            entry.getKey(),
+                            e.getNome(),
+                            e.getEndereco(),
+                            e.getTipo(),
+                            e.getSalario(),
+                            e.getComissao(),
+                            e.getSindicalizado());
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        private void carregarEmpregados() throws EmpregadoNaoExisteException {
+            Path path = Paths.get("empregados.csv");
+            if (!Files.exists(path)) return; // se arquivo não existe, nada a carregar
+
+            try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+                String linha;
+                while ((linha = br.readLine()) != null) {
+                    // Espera-se que o CSV seja: id;nome;endereco;tipo;salario;comissao;sindicalizado
+                    String[] partes = linha.split(";");
+                    if (partes.length < 6) continue; // linha inválida, pula
+
+                    String id = partes[0].trim();
+                    String nome = partes[1].trim();
+                    String endereco = partes[2].trim();
+                    String tipo = partes[3].trim().toLowerCase();
+
+                    double salario = 0.0;
+                    try {
+                        salario = Double.parseDouble(partes[4].replace(',', '.'));
+                        if (salario < 0) salario = 0.0; // tratamento extra para negativo
+                    } catch (NumberFormatException e) {
+                        System.err.println("Salario inválido para " + nome + ", usando 0.0");
+                    }
+
+                    double comissao = 0.0;
+                    try {
+                        if (partes.length >= 6 && !partes[5].trim().isEmpty())
+                            comissao = Double.parseDouble(partes[5].replace(',', '.'));
+                        if (comissao < 0) comissao = 0.0; // tratamento extra para negativo
+                    } catch (NumberFormatException e) {
+                        comissao = 0.0;
+                    }
+
+                    boolean sindicalizado = false;
+                    if (partes.length >= 7) {
+                        sindicalizado = Boolean.parseBoolean(partes[6].trim());
+                    }
+
+                    Empregado e = new Empregado(nome, endereco, tipo, salario);
+                    e.setComissao(comissao);
+
+                    empregadosMap.put(id, e);
+
+                    // Atualiza proximoId para não sobrescrever IDs
+                    try {
+                        int idNum = Integer.parseInt(id.replaceAll("[^0-9]", ""));
+                        if (idNum >= proximoId) proximoId = idNum + 1;
+                    } catch (NumberFormatException ignored) {}
+                }
+            } catch (IOException e) {
+                System.err.println("Erro ao ler arquivo de empregados: " + e.getMessage());
             }
         }
 
