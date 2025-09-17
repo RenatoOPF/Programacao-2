@@ -122,6 +122,12 @@
             return id;
         }
 
+        // Método auxiliar
+        private Empregado getEmpregadoPorId(String emp) {
+            // Procura o empregado na sua lista/mapa de empregados
+            return empregadosMap.get(emp); // Exemplo usando um HashMap<String, Empregado>
+        }
+
         public String getAtributoEmpregado(String emp, String atributo) throws EmpregadoNaoExisteException {
             if (emp == null || emp.trim().isEmpty()) {
                 throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
@@ -162,6 +168,19 @@
 
             // retorna o ID correspondente
             return idsEncontrados.get(indice - 1);
+        }
+
+        public void removerEmpregado(String emp) throws EmpregadoNaoExisteException {
+            if (emp == null || emp.trim().isEmpty()) {
+                throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
+            }
+
+            Empregado e = getEmpregadoPorId(emp);
+            if (e == null) {
+                throw new EmpregadoNaoExisteException("Empregado nao existe.");
+            }
+
+            empregadosMap.remove(emp);
         }
 
         private void salvarEmpregados() {
@@ -235,11 +254,4 @@
                 System.err.println("Erro ao ler arquivo de empregados: " + e.getMessage());
             }
         }
-
-        // Método auxiliar
-        private Empregado getEmpregadoPorId(String emp) {
-            // Procura o empregado na sua lista/mapa de empregados
-            return empregadosMap.get(emp); // Exemplo usando um HashMap<String, Empregado>
-        }
-
     }
