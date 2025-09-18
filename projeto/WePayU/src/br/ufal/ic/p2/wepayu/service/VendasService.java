@@ -51,7 +51,7 @@ public class VendasService {
         }
     }
 
-    public void lancarVenda(String empId, String dataStr, String valorStr) throws EmpregadoNaoExisteException {
+    public void lancarVenda(String empId, String dataStr, String valorStr) {
         if (empId == null || empId.trim().isEmpty()) {
             throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
         }
@@ -85,7 +85,7 @@ public class VendasService {
         salvar();
     }
 
-    public String getVendas(String empId, String dataInicialStr, String dataFinalStr) throws EmpregadoNaoExisteException {
+    public String getVendas(String empId, String dataInicialStr, String dataFinalStr) {
         if (empId == null || empId.trim().isEmpty()) {
             throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
         }

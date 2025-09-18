@@ -13,33 +13,36 @@ public class EmpregadosService {
     private int proximoId = 1;
     private final String ARQUIVO = "empregados.csv";
 
-    public void carregarEmpregados() throws EmpregadoNaoExisteException {
-        Path path = Paths.get(ARQUIVO);
-        if (!Files.exists(path)) return;
+    public void carregarEmpregados() {
+        File arquivo = new File("empregados.csv");
+        if (!arquivo.exists()) return;
 
-        try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+        try (BufferedReader br = new BufferedReader(new FileReader(arquivo))) {
             String linha;
             while ((linha = br.readLine()) != null) {
                 String[] partes = linha.split(";");
-                if (partes.length < 6) continue;
+                if (partes.length < 9) continue; // garante que tenha todos os campos
 
-                String id = partes[0].trim();
-                String nome = partes[1].trim();
-                String endereco = partes[2].trim();
-                String tipo = partes[3].trim().toLowerCase();
-
-                double salario = parseDoubleSafe(partes[4]);
-                double comissao = parseDoubleSafe(partes[5]);
-                boolean sindicalizado = partes.length >= 7 && Boolean.parseBoolean(partes[6].trim());
+                String id = partes[0];
+                String nome = partes[1];
+                String endereco = partes[2];
+                String tipo = partes[3];
+                double salario = Double.parseDouble(partes[4].replace(',', '.'));
+                boolean sindicalizado = Boolean.parseBoolean(partes[5]);
+                String idSindicato = partes[6].isEmpty() ? null : partes[6];
+                double taxaSindical = Double.parseDouble(partes[7].replace(',', '.'));
+                double comissao = Double.parseDouble(partes[8].replace(',', '.'));
 
                 Empregado e = new Empregado(nome, endereco, tipo, salario);
+                e.setSindicalizado(sindicalizado);
+                e.setIdSindicato(idSindicato);
+                e.setTaxaSindical(taxaSindical);
                 e.setComissao(comissao);
 
                 empregadosMap.put(id, e);
-                proximoId = Math.max(proximoId, extractIdNum(id) + 1);
             }
-        } catch (IOException e) {
-            System.err.println("Erro ao ler arquivo de empregados: " + e.getMessage());
+        } catch (IOException | NumberFormatException ex) {
+            System.err.println("Erro ao carregar empregados: " + ex.getMessage());
         }
     }
 
@@ -66,7 +69,7 @@ public class EmpregadosService {
         salvar();
     }
 
-    public String criarEmpregado(String nome, String endereco, String tipo, String salario) throws EmpregadoNaoExisteException {
+    public String criarEmpregado(String nome, String endereco, String tipo, String salario) {
         validarEmpregadoBasico(nome, endereco, tipo, salario);
         if (tipo.equalsIgnoreCase("comissionado")) {
             throw new TipoNaoAplicavelException("Tipo nao aplicavel.");
@@ -80,7 +83,7 @@ public class EmpregadosService {
         return id;
     }
 
-    public String criarEmpregadoComComissao(String nome, String endereco, String tipo, String salario, String comissao) throws EmpregadoNaoExisteException {
+    public String criarEmpregadoComComissao(String nome, String endereco, String tipo, String salario, String comissao) {
         validarEmpregadoBasico(nome, endereco, tipo, salario);
         if (!tipo.equalsIgnoreCase("comissionado")) {
             throw new TipoNaoAplicavelException("Tipo nao aplicavel.");
@@ -122,7 +125,7 @@ public class EmpregadosService {
         }
     }
 
-    public String getAtributo(String emp, String atributo) throws EmpregadoNaoExisteException {
+    public String getAtributo(String emp, String atributo) {
         Empregado e = getEmpregado(emp);
         switch (atributo) {
             case "nome": return e.getNome();
@@ -135,7 +138,7 @@ public class EmpregadosService {
         }
     }
 
-    public String getEmpregadoPorNome(String nome, int indice) throws EmpregadoNaoExisteException {
+    public String getEmpregadoPorNome(String nome, int indice) {
         List<String> encontrados = new ArrayList<>();
         for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
             if (entry.getValue().getNome().equals(nome)) encontrados.add(entry.getKey());
@@ -146,12 +149,12 @@ public class EmpregadosService {
         return encontrados.get(indice - 1);
     }
 
-    public void remover(String emp) throws EmpregadoNaoExisteException {
+    public void remover(String emp) {
         Empregado e = getEmpregado(emp);
         empregadosMap.remove(emp);
     }
 
-    private Empregado getEmpregado(String emp) throws EmpregadoNaoExisteException {
+    private Empregado getEmpregado(String emp) {
         if (emp == null || emp.trim().isEmpty())
             throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
 
@@ -160,19 +163,110 @@ public class EmpregadosService {
         return e;
     }
 
+    // Altera empregado passando idSindicato e taxaSindical — obrigatório para sindicalizar
+    public void alterarEmpregado(String empId, String atributo, String valor, String idSindicato, String taxaSindical) {
+        Empregado e = getEmpregado(empId);
+        if (e == null) throw new EmpregadoNaoExisteException("Empregado nao existe.");
+
+        switch (atributo.toLowerCase()) {
+            case "sindicalizado":
+                boolean sindicalizado = Boolean.parseBoolean(valor);
+                e.setSindicalizado(sindicalizado);
+
+                if (sindicalizado) {
+                    // valida se já existe outro empregado com mesmo idSindicato
+                    boolean existe = getEmpregadosMap().values().stream()
+                            .anyMatch(emp -> emp != e && idSindicato.equals(emp.getIdSindicato()));
+                    if (existe) {
+                        throw new RuntimeException("Ha outro empregado com esta identificacao de sindicato");
+                    }
+                    e.setIdSindicato(idSindicato);
+                    e.setTaxaSindical(Double.parseDouble(taxaSindical.replace(',', '.')));
+                } else {
+                    e.setIdSindicato(null);
+                    e.setTaxaSindical(0.0);
+                }
+                break;
+
+            case "nome":
+                e.setNome(valor);
+                break;
+
+            case "endereco":
+                e.setEndereco(valor);
+                break;
+
+            case "tipo":
+                e.setTipo(valor.toLowerCase());
+                break;
+
+            case "salario":
+                e.setSalario(Double.parseDouble(valor.replace(',', '.')));
+                break;
+
+            default:
+                throw new RuntimeException("Atributo nao existe.");
+        }
+
+        salvar(); // salva alterações
+    }
+
+    // Altera empregado sem idSindicato/taxaSindical — nunca use para sindicalizar!
+    public void alterarEmpregado(String empId, String atributo, String valor) {
+        Empregado e = getEmpregado(empId);
+        if (e == null) throw new EmpregadoNaoExisteException("Empregado nao existe.");
+
+        switch (atributo.toLowerCase()) {
+            case "sindicalizado":
+                // Se chamar este método com "true", o empregado **não terá sindicato nem taxa**, e será considerado não sindicalizado
+                e.setSindicalizado(Boolean.parseBoolean(valor));
+                break;
+
+            case "nome":
+                e.setNome(valor);
+                break;
+
+            case "endereco":
+                e.setEndereco(valor);
+                break;
+
+            case "tipo":
+                e.setTipo(valor.toLowerCase());
+                break;
+
+            case "salario":
+                e.setSalario(Double.parseDouble(valor.replace(',', '.')));
+                break;
+
+            default:
+                throw new RuntimeException("Atributo nao existe.");
+        }
+
+        salvar(); // salva alterações
+    }
+
     public void salvar() {
-        try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO))) {
+        try (PrintWriter pw = new PrintWriter(new FileWriter("empregados.csv"))) {
             for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+                String id = entry.getKey();
                 Empregado e = entry.getValue();
-                pw.printf("%s;%s;%s;%s;%.2f;%.2f;%b%n",
-                        entry.getKey(), e.getNome(), e.getEndereco(),
-                        e.getTipo(), e.getSalario(), e.getComissao(),
-                        e.getSindicalizado());
+                pw.printf("%s;%s;%s;%s;%.2f;%b;%s;%.2f;%.2f%n",
+                        id,
+                        e.getNome(),
+                        e.getEndereco(),
+                        e.getTipo(),
+                        e.getSalario(),
+                        e.getSindicalizado(),
+                        e.getIdSindicato() != null ? e.getIdSindicato() : "",
+                        e.getTaxaSindical(),
+                        e.getComissao() != 0.0 ? e.getComissao() : 0.0
+                );
             }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println("Erro ao salvar empregados: " + ex.getMessage());
         }
     }
+
 
     public Map<String, Empregado> getEmpregadosMap() {
         return empregadosMap;

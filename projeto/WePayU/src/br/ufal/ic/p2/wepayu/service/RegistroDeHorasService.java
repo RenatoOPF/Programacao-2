@@ -18,7 +18,7 @@ public class RegistroDeHorasService {
         this.empregadosMap = empregadosMap;
     }
 
-    public void lancarCartao(String empId, String dataStr, String horasStr) throws EmpregadoNaoExisteException {
+    public void lancarCartao(String empId, String dataStr, String horasStr) {
         Empregado e = validarEmpregado(empId);
 
         if (!"horista".equalsIgnoreCase(e.getTipo())) {
@@ -58,13 +58,13 @@ public class RegistroDeHorasService {
             registroExistente.SetHorasNormais(normais);
             registroExistente.SetHorasExtras(extras);
         } else {
-            e.setRegistroDeHoras(new RegistroDeHoras(data, normais, extras));
+            e.addRegistroDeHoras(new RegistroDeHoras(data, normais, extras));
         }
 
         salvar();
     }
 
-    public String getHorasNormais(String empId, String dataInicial, String dataFinal) throws EmpregadoNaoExisteException {
+    public String getHorasNormais(String empId, String dataInicial, String dataFinal) {
         Empregado e = validarEmpregado(empId);
 
         if (!"horista".equalsIgnoreCase(e.getTipo())) {
@@ -88,7 +88,7 @@ public class RegistroDeHorasService {
         return formatHoras(total);
     }
 
-    public String getHorasExtras(String empId, String dataInicial, String dataFinal) throws EmpregadoNaoExisteException {
+    public String getHorasExtras(String empId, String dataInicial, String dataFinal) {
         Empregado e = validarEmpregado(empId);
 
         if (!"horista".equalsIgnoreCase(e.getTipo())) {
@@ -131,7 +131,7 @@ public class RegistroDeHorasService {
 
                 Empregado e = empregadosMap.get(empId);
                 if (e != null) {
-                    e.setRegistroDeHoras(new RegistroDeHoras(data, normais, extras));
+                    e.addRegistroDeHoras(new RegistroDeHoras(data, normais, extras));
                 }
             }
         } catch (IOException e) {
@@ -167,7 +167,7 @@ public class RegistroDeHorasService {
         }
     }
 
-    private Empregado validarEmpregado(String empId) throws EmpregadoNaoExisteException {
+    private Empregado validarEmpregado(String empId) {
         if (empId == null || empId.trim().isEmpty()) {
             throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
         }
