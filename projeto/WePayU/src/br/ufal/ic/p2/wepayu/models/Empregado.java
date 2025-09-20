@@ -15,6 +15,12 @@ public class Empregado {
     private String idSindicato;
     private double taxaSindical;
 
+    // ---------- Pagamento ----------
+    private String metodoPagamento; // "emMaos", "correios", "banco"
+    private String banco;
+    private String agencia;
+    private String contaCorrente;
+
     private List<RegistroDeHoras> registrosDeHoras = new ArrayList<>();
     private List<Venda> vendas = new ArrayList<>();
     private List<TaxaServico> taxasServico = new ArrayList<>();
@@ -22,13 +28,18 @@ public class Empregado {
     public Empregado(String nome, String endereco, String tipo, double salario) {
         this.nome = nome;
         this.endereco = endereco;
-        this.tipo = tipo.toLowerCase();
+        this.tipo = tipo;
         this.salario = salario;
 
         this.comissao = 0.0;
         this.sindicalizado = false;
         this.idSindicato = null;
         this.taxaSindical = 0.0;
+
+        this.metodoPagamento = "emMaos"; // default
+        this.banco = null;
+        this.agencia = null;
+        this.contaCorrente = null;
     }
 
     // ---------- Getters e Setters básicos ----------
@@ -39,7 +50,7 @@ public class Empregado {
     public void setEndereco(String endereco) { this.endereco = endereco; }
 
     public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo.toLowerCase(); }
+    public void setTipo(String tipo) { this.tipo = tipo; }
 
     public double getSalario() { return salario; }
     public void setSalario(double salario) { this.salario = salario; }
@@ -100,4 +111,19 @@ public class Empregado {
             taxasServico.add(taxa);
         }
     }
+
+    // ---------- Getters de Pagamento ----------
+    public String getMetodoPagamento() { return metodoPagamento; }
+    public String getBanco() { return banco; }
+    public String getAgencia() { return agencia; }
+    public String getContaCorrente() { return contaCorrente; }
+
+    // ---------- Setters de Pagamento ----------
+    public void setMetodoPagamento(String metodoPagamento) {
+        this.metodoPagamento = metodoPagamento;
+    }
+
+    public void setBanco(String banco) { this.banco = banco; }
+    public void setAgencia(String agencia) { this.agencia = agencia; }
+    public void setContaCorrente(String contaCorrente) { this.contaCorrente = contaCorrente; }
 }

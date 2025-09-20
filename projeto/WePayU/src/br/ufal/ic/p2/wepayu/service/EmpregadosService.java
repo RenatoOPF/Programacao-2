@@ -77,7 +77,7 @@ public class EmpregadosService {
 
         double salarioNum = Double.parseDouble(salario.replace(',', '.'));
         String id = "id" + proximoId++;
-        Empregado e = new Empregado(nome, endereco, tipo.toLowerCase(), salarioNum);
+        Empregado e = new Empregado(nome, endereco, tipo, salarioNum);
         empregadosMap.put(id, e);
         salvar();
         return id;
@@ -101,7 +101,7 @@ public class EmpregadosService {
 
         double sal = Double.parseDouble(salario.replace(',', '.'));
         String id = "id" + proximoId++;
-        Empregado e = new Empregado(nome, endereco, tipo.toLowerCase(), sal);
+        Empregado e = new Empregado(nome, endereco, tipo, sal);
         e.setComissao(comissaoNum);
         empregadosMap.put(id, e);
         salvar();
@@ -125,16 +125,58 @@ public class EmpregadosService {
         }
     }
 
-    public String getAtributo(String emp, String atributo) {
-        Empregado e = getEmpregado(emp);
+    public String getAtributo(String empId, String atributo) {
+        Empregado e = getEmpregado(empId);
+        if (e == null) throw new EmpregadoNaoExisteException("Empregado nao existe.");
+        if (empId == null || empId.trim().isEmpty()) throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
+
         switch (atributo) {
-            case "nome": return e.getNome();
-            case "endereco": return e.getEndereco();
-            case "tipo": return e.getTipo();
-            case "salario": return String.format("%.2f", e.getSalario()).replace('.', ',');
-            case "comissao": return String.format("%.2f", e.getComissao()).replace('.', ',');
-            case "sindicalizado": return String.valueOf(e.getSindicalizado());
-            default: throw new AtributoNaoExisteException("Atributo nao existe.");
+            case "nome":
+                return e.getNome();
+
+            case "endereco":
+                return e.getEndereco();
+
+            case "tipo":
+                return e.getTipo();
+
+            case "salario":
+                return String.format("%.2f", e.getSalario()).replace('.', ',');
+
+            case "comissao":
+                if (!"comissionado".equals(e.getTipo()))
+                    throw new RuntimeException("Empregado nao eh comissionado.");
+                return String.format("%.2f", e.getComissao()).replace('.', ',');
+
+            case "metodoPagamento":
+                return e.getMetodoPagamento();
+
+            case "banco":
+            case "agencia":
+            case "contaCorrente":
+                if (!"banco".equalsIgnoreCase(e.getMetodoPagamento()))
+                    throw new RuntimeException("Empregado nao recebe em banco.");
+                switch (atributo) {
+                    case "banco": return e.getBanco();
+                    case "agencia": return e.getAgencia();
+                    case "contaCorrente": return e.getContaCorrente();
+                }
+
+            case "sindicalizado":
+                return String.valueOf(e.getSindicalizado());
+
+            case "idSindicato":
+                if (!e.getSindicalizado())
+                    throw new RuntimeException("Empregado nao eh sindicalizado.");
+                return e.getIdSindicato();
+
+            case "taxaSindical":
+                if (!e.getSindicalizado())
+                    throw new RuntimeException("Empregado nao eh sindicalizado.");
+                return String.format("%.2f", e.getTaxaSindical()).replace('.', ',');
+
+            default:
+                throw new RuntimeException("Atributo nao existe.");
         }
     }
 
@@ -163,18 +205,42 @@ public class EmpregadosService {
         return e;
     }
 
-    // Altera empregado passando idSindicato e taxaSindical — obrigatório para sindicalizar
-    public void alterarEmpregado(String empId, String atributo, String valor, String idSindicato, String taxaSindical) {
-        Empregado e = getEmpregado(empId);
-        if (e == null) throw new EmpregadoNaoExisteException("Empregado nao existe.");
+    public void alterarEmpregado(String empId, String atributo, String valor, String valor1, String valor2, String valor3) {
+        Empregado e =  getEmpregado(empId);
 
-        switch (atributo.toLowerCase()) {
+        validarEmpregadoBasico(e.getNome(), e.getEndereco(), e.getTipo(), String.valueOf(e.getSalario()));
+
+        switch (atributo) {
             case "sindicalizado":
                 boolean sindicalizado = Boolean.parseBoolean(valor);
-                e.setSindicalizado(sindicalizado);
+
+                if (valor.equalsIgnoreCase("true")) {
+                    e.setSindicalizado(true);
+                } else if (valor.equalsIgnoreCase("false")) {
+                    e.setSindicalizado(false);
+                } else {
+                    throw new RuntimeException("Valor deve ser true ou false.");
+                }
 
                 if (sindicalizado) {
-                    // valida se já existe outro empregado com mesmo idSindicato
+                    String idSindicato = valor1;
+                    if (idSindicato == null || idSindicato.trim().isEmpty()) {
+                        throw new RuntimeException("Identificacao do sindicato nao pode ser nula.");
+                    }
+
+                    String taxaSindical = valor2;
+                    if (taxaSindical == null || taxaSindical.trim().isEmpty()) {
+                        throw new RuntimeException("Taxa sindical nao pode ser nula.");
+                    }
+                    try {
+                        double d = Double.parseDouble(taxaSindical.replace(',', '.'));
+                        if (d < 0) {
+                            throw new RuntimeException("Taxa sindical deve ser nao-negativa.");
+                        }
+                    } catch (NumberFormatException ex) {
+                        throw new RuntimeException("Taxa sindical deve ser numerica.");
+                    }
+
                     boolean existe = getEmpregadosMap().values().stream()
                             .anyMatch(emp -> emp != e && idSindicato.equals(emp.getIdSindicato()));
                     if (existe) {
@@ -187,62 +253,113 @@ public class EmpregadosService {
                     e.setTaxaSindical(0.0);
                 }
                 break;
+            case "comissao":
+                if (valor == null || valor.trim().isEmpty()) {
+                    throw new RuntimeException("Comissao nao pode ser nula.");
+                }
+                if (!e.getTipo().equals("comissionado")) {
+                    throw new RuntimeException("Empregado nao eh comissionado.");
+                }
+                try {
+                    double d = Double.parseDouble(valor.replace(',', '.'));
+                    if (d < 0) {
+                        throw new RuntimeException("Comissao deve ser nao-negativa.");
+                    }
+                } catch (NumberFormatException ex) {
+                    throw new RuntimeException("Comissao deve ser numerica.");
+                }
+                e.setComissao(Double.parseDouble(valor.replace(',', '.')));
+                break;
+            case "metodoPagamento":
+                switch (valor) {
+                    case "banco":
+                        String banco = valor1;
+                        String agencia = valor2;
+                        String contaCorrente = valor3;
 
+                        if (banco == null || banco.trim().isEmpty()) {
+                            throw new RuntimeException("Banco nao pode ser nulo.");
+                        }
+                        if (agencia == null || agencia.trim().isEmpty()) {
+                            throw new RuntimeException("Agencia nao pode ser nulo.");
+                        }
+                        if (contaCorrente == null || contaCorrente.trim().isEmpty()) {
+                            throw new RuntimeException("Conta corrente nao pode ser nulo.");
+                        }
+
+                        e.setMetodoPagamento(valor);
+                        e.setBanco(banco);
+                        e.setAgencia(agencia);
+                        e.setContaCorrente(contaCorrente);
+                        break;
+                    case "correios":
+                        e.setMetodoPagamento(valor);
+                        break;
+                    case "emMaos":
+                        e.setMetodoPagamento(valor);
+                        break;
+                    default:
+                        throw new RuntimeException("Metodo de pagamento invalido.");
+                }
+                break;
             case "nome":
+                if (valor == null || valor.trim().isEmpty()) {
+                    throw new RuntimeException("Nome nao pode ser nulo.");
+                }
                 e.setNome(valor);
                 break;
-
             case "endereco":
+                if (valor == null || valor.trim().isEmpty()) {
+                    throw new RuntimeException("Endereco nao pode ser nulo.");
+                }
                 e.setEndereco(valor);
                 break;
-
             case "tipo":
-                e.setTipo(valor.toLowerCase());
+                switch (valor) {
+                    case "comissionado":
+                        e.setTipo(valor);
+                        e.setComissao(Double.parseDouble(valor1.replace(',', '.')));
+                        break;
+                    case "horista":
+                        e.setTipo(valor);
+                        e.setSalario(Double.parseDouble(valor1.replace(',', '.')));
+                        break;
+                    case "assalariado":
+                        e.setTipo(valor);
+                        break;
+                    default:
+                        throw new RuntimeException("Tipo invalido.");
+                }
                 break;
-
             case "salario":
-                e.setSalario(Double.parseDouble(valor.replace(',', '.')));
+                if (valor == null || valor.trim().isEmpty()) {
+                    throw new RuntimeException("Salario nao pode ser nulo.");
+                }
+                try {
+                    double d = Double.parseDouble(valor.replace(',', '.'));
+                    if (d < 0) {
+                        throw new RuntimeException("Salario deve ser nao-negativo.");
+                    }
+                } catch (NumberFormatException ex) {
+                    throw new RuntimeException("Salario deve ser numerico.");
+                }
+                e.setSalario(Double.parseDouble(valor.replace(",", ".")));
                 break;
-
+            case "banco":
+                break;
+            case "agencia":
+                break;
+            case "contaCorrente":
+                break;
+            case "idSindicato":
+                break;
+            case "taxaSindical":
+                break;
             default:
                 throw new RuntimeException("Atributo nao existe.");
         }
 
-        salvar(); // salva alterações
-    }
-
-    // Altera empregado sem idSindicato/taxaSindical — nunca use para sindicalizar!
-    public void alterarEmpregado(String empId, String atributo, String valor) {
-        Empregado e = getEmpregado(empId);
-        if (e == null) throw new EmpregadoNaoExisteException("Empregado nao existe.");
-
-        switch (atributo.toLowerCase()) {
-            case "sindicalizado":
-                // Se chamar este método com "true", o empregado **não terá sindicato nem taxa**, e será considerado não sindicalizado
-                e.setSindicalizado(Boolean.parseBoolean(valor));
-                break;
-
-            case "nome":
-                e.setNome(valor);
-                break;
-
-            case "endereco":
-                e.setEndereco(valor);
-                break;
-
-            case "tipo":
-                e.setTipo(valor.toLowerCase());
-                break;
-
-            case "salario":
-                e.setSalario(Double.parseDouble(valor.replace(',', '.')));
-                break;
-
-            default:
-                throw new RuntimeException("Atributo nao existe.");
-        }
-
-        salvar(); // salva alterações
+        salvar();
     }
 
     public void salvar() {

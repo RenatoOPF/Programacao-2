@@ -6,6 +6,8 @@ import br.ufal.ic.p2.wepayu.service.RegistroDeHorasService;
 import br.ufal.ic.p2.wepayu.service.TaxaServicoService;
 import br.ufal.ic.p2.wepayu.service.VendasService;
 
+import java.util.Map;
+
 public class Facade {
     private EmpregadosService empregadosService;
     private RegistroDeHorasService registroService;
@@ -84,11 +86,19 @@ public class Facade {
     }
 
     public void alteraEmpregado(String empId, String atributo, String valor) {
-        empregadosService.alterarEmpregado(empId, atributo, valor);
+        empregadosService.alterarEmpregado(empId, atributo, valor, null, null, null);
     }
 
     public void alteraEmpregado(String empId, String atributo, String valor, String idSindicato, String taxaSindical) {
-        empregadosService.alterarEmpregado(empId, atributo, valor,  idSindicato, taxaSindical);
+        empregadosService.alterarEmpregado(empId, atributo, valor,  idSindicato, taxaSindical, null);
+    }
+
+    public void alteraEmpregado(String empId, String atributo, String valor1, String banco, String agencia, String contaCorrente) {
+        empregadosService.alterarEmpregado(empId, atributo, valor1,  banco, agencia, contaCorrente);
+    }
+
+    public void alteraEmpregado(String empId, String atributo, String valor, String comissao) {
+        empregadosService.alterarEmpregado(empId, atributo, valor,  comissao, null, null);
     }
 
     public void lancaTaxaServico(String membro, String data, String valor) throws Exception {
@@ -106,10 +116,8 @@ public class Facade {
                     + " | Sindicalizado: " + e.getSindicalizado()
                     + " | ID Sindicato: " + e.getIdSindicato()
                     + " | TaxaSindical: " + e.getTaxaSindical()
+                    + " | Tipo: " + e.getTipo()
             );
         });
     }
-
-
-
 }
