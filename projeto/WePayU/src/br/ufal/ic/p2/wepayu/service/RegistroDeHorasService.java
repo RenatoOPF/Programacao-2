@@ -27,9 +27,13 @@ public class RegistroDeHorasService {
 
         LocalDate data;
         try {
-            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/yyyy"));
+            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/uuuu"));
         } catch (DateTimeParseException ex) {
             throw new DataInvalidaException("Data invalida.");
+        }
+
+        if (e.getDataAdmissao() == null) {
+            e.setDataAdmissao(data);
         }
 
         double horas;
@@ -64,11 +68,23 @@ public class RegistroDeHorasService {
         salvar();
     }
 
+    public LocalDate getDataAdmissao(Empregado e) {
+        if ("horista".equalsIgnoreCase(e.getTipo())) {
+            return e.getDataAdmissao(); // primeira vez que lançou cartão
+        } else {
+            return LocalDate.of(2005, 1, 1); // assalariado ou comissionado
+        }
+    }
+
     public String getHorasNormais(String empId, String dataInicial, String dataFinal) {
         Empregado e = validarEmpregado(empId);
 
         if (!"horista".equalsIgnoreCase(e.getTipo())) {
             throw new NaoEhHoristaException("Empregado nao eh horista.");
+        }
+
+        if (dataInicial == null || dataFinal == null || e.getRegistrosDeHoras().isEmpty()) {
+            return "0";
         }
 
         LocalDate inicial = parseData(dataInicial, "inicial");
@@ -95,6 +111,10 @@ public class RegistroDeHorasService {
             throw new NaoEhHoristaException("Empregado nao eh horista.");
         }
 
+        if (dataInicial == null || dataFinal == null || e.getRegistrosDeHoras().isEmpty()) {
+            return "0";
+        }
+
         LocalDate inicial = parseData(dataInicial, "inicial");
         LocalDate fim = parseData(dataFinal, "final");
 
@@ -118,7 +138,7 @@ public class RegistroDeHorasService {
 
         try (BufferedReader br = new BufferedReader(new FileReader(arquivo))) {
             String linha;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
 
             while ((linha = br.readLine()) != null) {
                 String[] partes = linha.split(";");
@@ -153,7 +173,7 @@ public class RegistroDeHorasService {
 
     public void salvar() {
         try (PrintWriter pw = new PrintWriter(new FileWriter("registros.csv"))) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
 
             for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
                 String empId = entry.getKey();

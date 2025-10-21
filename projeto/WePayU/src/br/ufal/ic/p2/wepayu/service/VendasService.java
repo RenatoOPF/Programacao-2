@@ -11,7 +11,6 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 
 public class VendasService {
 
@@ -28,7 +27,7 @@ public class VendasService {
 
         try (BufferedReader br = new BufferedReader(new FileReader(arquivo))) {
             String linha;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
 
             while ((linha = br.readLine()) != null) {
                 String[] partes = linha.split(";");
@@ -67,7 +66,7 @@ public class VendasService {
 
         LocalDate data;
         try {
-            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/yyyy"));
+            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/uuuu"));
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException("Data invalida.");
         }
@@ -85,7 +84,7 @@ public class VendasService {
         salvar();
     }
 
-    public String getVendas(String empId, String dataInicialStr, String dataFinalStr) {
+    public String getTotalVendas(String empId, String dataInicialStr, String dataFinalStr) {
         if (empId == null || empId.trim().isEmpty()) {
             throw new IdentificacaoDoEmpregadoNulaException("Identificacao do empregado nao pode ser nula.");
         }
@@ -128,7 +127,7 @@ public class VendasService {
 
     public void salvar() {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO))) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
             for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
                 Empregado e = entry.getValue();
                 for (Venda v : e.getVendas()) {

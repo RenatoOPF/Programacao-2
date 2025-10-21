@@ -33,7 +33,7 @@ public class EmpregadosService {
                 double taxaSindical = Double.parseDouble(partes[7].replace(',', '.'));
                 double comissao = Double.parseDouble(partes[8].replace(',', '.'));
 
-                Empregado e = new Empregado(nome, endereco, tipo, salario);
+                Empregado e = new Empregado(id, nome, endereco, tipo, salario);
                 e.setSindicalizado(sindicalizado);
                 e.setIdSindicato(idSindicato);
                 e.setTaxaSindical(taxaSindical);
@@ -77,7 +77,7 @@ public class EmpregadosService {
 
         double salarioNum = Double.parseDouble(salario.replace(',', '.'));
         String id = "id" + proximoId++;
-        Empregado e = new Empregado(nome, endereco, tipo, salarioNum);
+        Empregado e = new Empregado(id, nome, endereco, tipo, salarioNum);
         empregadosMap.put(id, e);
         salvar();
         return id;
@@ -101,7 +101,7 @@ public class EmpregadosService {
 
         double sal = Double.parseDouble(salario.replace(',', '.'));
         String id = "id" + proximoId++;
-        Empregado e = new Empregado(nome, endereco, tipo, sal);
+        Empregado e = new Empregado(id, nome, endereco, tipo, sal);
         e.setComissao(comissaoNum);
         empregadosMap.put(id, e);
         salvar();

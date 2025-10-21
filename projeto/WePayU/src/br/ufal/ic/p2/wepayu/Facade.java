@@ -1,12 +1,10 @@
 package br.ufal.ic.p2.wepayu;
 
-import br.ufal.ic.p2.wepayu.Exception.EmpregadoNaoExisteException;
 import br.ufal.ic.p2.wepayu.service.EmpregadosService;
 import br.ufal.ic.p2.wepayu.service.RegistroDeHorasService;
 import br.ufal.ic.p2.wepayu.service.TaxaServicoService;
 import br.ufal.ic.p2.wepayu.service.VendasService;
-
-import java.util.Map;
+import br.ufal.ic.p2.wepayu.service.FolhaDePagamentoService;
 
 public class Facade {
     private EmpregadosService empregadosService;
@@ -82,23 +80,24 @@ public class Facade {
     }
 
     public String getVendasRealizadas(String emp, String dataInicial, String dataFinal) {
-        return vendaService.getVendas(emp, dataInicial, dataFinal);
+        return vendaService.getTotalVendas(emp, dataInicial, dataFinal);
     }
 
+    // ---------- Alterações ----------
     public void alteraEmpregado(String empId, String atributo, String valor) {
         empregadosService.alterarEmpregado(empId, atributo, valor, null, null, null);
     }
 
     public void alteraEmpregado(String empId, String atributo, String valor, String idSindicato, String taxaSindical) {
-        empregadosService.alterarEmpregado(empId, atributo, valor,  idSindicato, taxaSindical, null);
+        empregadosService.alterarEmpregado(empId, atributo, valor, idSindicato, taxaSindical, null);
     }
 
     public void alteraEmpregado(String empId, String atributo, String valor1, String banco, String agencia, String contaCorrente) {
-        empregadosService.alterarEmpregado(empId, atributo, valor1,  banco, agencia, contaCorrente);
+        empregadosService.alterarEmpregado(empId, atributo, valor1, banco, agencia, contaCorrente);
     }
 
     public void alteraEmpregado(String empId, String atributo, String valor, String comissao) {
-        empregadosService.alterarEmpregado(empId, atributo, valor,  comissao, null, null);
+        empregadosService.alterarEmpregado(empId, atributo, valor, comissao, null, null);
     }
 
     public void lancaTaxaServico(String membro, String data, String valor) throws Exception {
@@ -106,9 +105,37 @@ public class Facade {
     }
 
     public String getTaxasServico(String emp, String dataInicial, String dataFinal) throws Exception {
-        return taxaService.getTaxas(emp, dataInicial, dataFinal);
+        return taxaService.getTotalTaxas(emp, dataInicial, dataFinal);
     }
 
+    // ---------- Folha de pagamento ----------
+    public void rodaFolha(String data, String saida) throws Exception {
+        FolhaDePagamentoService folha = new FolhaDePagamentoService(
+                empregadosService.getEmpregadosMap(),
+                registroService,
+                vendaService,
+                taxaService
+        );
+        folha.rodaFolha(data, saida);
+    }
+
+    public String totalFolha(String data) {
+        try {
+            FolhaDePagamentoService folha = new FolhaDePagamentoService(
+                    empregadosService.getEmpregadosMap(),
+                    registroService,
+                    vendaService,
+                    taxaService
+            );
+            double total = folha.totalFolha(data);
+            return String.format("%.2f", total).replace('.', ',');
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "0,00";
+        }
+    }
+
+    // ---------- Utilitário ----------
     public void imprimirEmpregados() {
         empregadosService.getEmpregadosMap().forEach((id, e) -> {
             System.out.println("ID: " + id

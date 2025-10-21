@@ -3,7 +3,6 @@ package br.ufal.ic.p2.wepayu.service;
 import br.ufal.ic.p2.wepayu.Exception.*;
 import br.ufal.ic.p2.wepayu.models.Empregado;
 import br.ufal.ic.p2.wepayu.models.TaxaServico;
-import br.ufal.ic.p2.wepayu.models.Venda;
 
 import java.io.*;
 import java.time.LocalDate;
@@ -25,7 +24,7 @@ public class TaxaServicoService {
 
         try (BufferedReader br = new BufferedReader(new FileReader(arquivo))) {
             String linha;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
 
             while ((linha = br.readLine()) != null) {
                 String[] partes = linha.split(";");
@@ -62,7 +61,7 @@ public class TaxaServicoService {
 
         LocalDate data;
         try {
-            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/yyyy"));
+            data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("d/M/uuuu"));
         } catch (DateTimeParseException ex) {
             throw new DataInvalidaException("Data invalida.");
         }
@@ -73,7 +72,7 @@ public class TaxaServicoService {
         salvar();
     }
 
-    public String getTaxas(String empId, String dataInicialStr, String dataFinalStr) throws Exception {
+    public String getTotalTaxas(String empId, String dataInicialStr, String dataFinalStr) throws Exception {
         Empregado e = empregadosMap.get(empId);
         if (e == null)
             throw new EmpregadoNaoExisteException("Empregado nao existe.");
@@ -106,7 +105,7 @@ public class TaxaServicoService {
 
     public void salvar() {
         try (PrintWriter pw = new PrintWriter(new FileWriter("taxas.csv"))) {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/uuuu");
             for (Empregado e : empregadosMap.values()) {
                 for (TaxaServico t : e.getTaxasServico()) {
                     // Salva sempre pelo ID do empregado
