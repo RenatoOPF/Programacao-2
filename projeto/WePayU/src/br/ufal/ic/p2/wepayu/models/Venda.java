@@ -6,6 +6,10 @@ public class Venda {
     private LocalDate data;
     private double valor;
 
+    public Venda copiar() {
+        return new Venda(this.data, this.valor);
+    }
+
     public Venda(LocalDate data, double valor) {
         this.data = data;
         this.valor = valor;

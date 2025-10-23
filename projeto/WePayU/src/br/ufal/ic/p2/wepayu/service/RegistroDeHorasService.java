@@ -9,6 +9,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RegistroDeHorasService {
@@ -159,6 +162,12 @@ public class RegistroDeHorasService {
         }
     }
 
+    public void limpar() {
+        for (Empregado e : empregadosMap.values()) {
+            e.getRegistrosDeHoras().clear();
+        }
+    }
+
     public void zerar() {
         for (Empregado e : empregadosMap.values()) {
             e.getRegistrosDeHoras().clear();
@@ -212,4 +221,29 @@ public class RegistroDeHorasService {
         if (total == (int) total) return String.valueOf((int) total);
         return String.format("%.1f", total).replace('.', ',');
     }
+
+    // Clona todos os registros de horas de todos os empregados
+    public Map<String, List<RegistroDeHoras>> cloneRegistros() {
+        Map<String, List<RegistroDeHoras>> clone = new HashMap<>();
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            List<RegistroDeHoras> listaClone = new ArrayList<>();
+            for (RegistroDeHoras r : entry.getValue().getRegistrosDeHoras()) {
+                listaClone.add(r.copiar()); // precisa implementar copiar() em RegistroDeHoras
+            }
+            clone.put(entry.getKey(), listaClone);
+        }
+        return clone;
+    }
+
+    // Restaura todos os registros a partir de um snapshot
+    public void restaurarRegistros(Map<String, List<RegistroDeHoras>> clone) {
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            entry.getValue().getRegistrosDeHoras().clear(); // limpa existentes
+            if (clone.containsKey(entry.getKey())) {
+                entry.getValue().getRegistrosDeHoras().addAll(clone.get(entry.getKey()));
+            }
+        }
+        salvar(); // opcional: sobrescrever CSV
+    }
+
 }

@@ -21,7 +21,7 @@ public class EmpregadosService {
             String linha;
             while ((linha = br.readLine()) != null) {
                 String[] partes = linha.split(";");
-                if (partes.length < 9) continue; // garante que tenha todos os campos
+                if (partes.length < 10) continue; // garante que tenha todos os campos
 
                 String id = partes[0];
                 String nome = partes[1];
@@ -32,12 +32,14 @@ public class EmpregadosService {
                 String idSindicato = partes[6].isEmpty() ? null : partes[6];
                 double taxaSindical = Double.parseDouble(partes[7].replace(',', '.'));
                 double comissao = Double.parseDouble(partes[8].replace(',', '.'));
+                String metodoDePagamento = partes[9].isEmpty() ? null : partes[9];
 
                 Empregado e = new Empregado(id, nome, endereco, tipo, salario);
                 e.setSindicalizado(sindicalizado);
                 e.setIdSindicato(idSindicato);
                 e.setTaxaSindical(taxaSindical);
                 e.setComissao(comissao);
+                e.setMetodoPagamento(metodoDePagamento);
 
                 empregadosMap.put(id, e);
             }
@@ -61,6 +63,11 @@ public class EmpregadosService {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public void limpar() {
+        empregadosMap.clear(); // Zera o mapa de empregados em memória
+        proximoId = 1;
     }
 
     public void zerar() {
@@ -367,7 +374,7 @@ public class EmpregadosService {
             for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
                 String id = entry.getKey();
                 Empregado e = entry.getValue();
-                pw.printf("%s;%s;%s;%s;%.2f;%b;%s;%.2f;%.2f%n",
+                pw.printf("%s;%s;%s;%s;%.2f;%b;%s;%.2f;%.2f;%s%n",
                         id,
                         e.getNome(),
                         e.getEndereco(),
@@ -376,7 +383,8 @@ public class EmpregadosService {
                         e.getSindicalizado(),
                         e.getIdSindicato() != null ? e.getIdSindicato() : "",
                         e.getTaxaSindical(),
-                        e.getComissao() != 0.0 ? e.getComissao() : 0.0
+                        e.getComissao() != 0.0 ? e.getComissao() : 0.0,
+                        e.getMetodoPagamento()
                 );
             }
         } catch (IOException ex) {
@@ -384,6 +392,19 @@ public class EmpregadosService {
         }
     }
 
+    public Map<String, Empregado> cloneEmpregadosMap() {
+        Map<String, Empregado> clone = new HashMap<>();
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            clone.put(entry.getKey(), entry.getValue().copiar()); // cada empregado precisa de um método copiar()
+        }
+        return clone;
+    }
+
+    public void restaurarEmpregados(Map<String, Empregado> clone) {
+        empregadosMap.clear();
+        empregadosMap.putAll(clone);
+        salvar(); // opcional: sobrescrever CSV
+    }
 
     public Map<String, Empregado> getEmpregadosMap() {
         return empregadosMap;

@@ -35,6 +35,46 @@ public class Empregado {
     private List<Venda> vendas = new ArrayList<>();
     private List<TaxaServico> taxasServico = new ArrayList<>();
 
+    public Empregado copiar() {
+        Empregado copia = new Empregado(this.id, this.nome, this.endereco, this.tipo, this.salario);
+
+        // ---------- Atributos opcionais ----------
+        copia.comissao = this.comissao;
+        copia.sindicalizado = this.sindicalizado;
+        copia.idSindicato = this.idSindicato;
+        copia.taxaSindical = this.taxaSindical;
+
+        // ---------- Novos atributos ----------
+        copia.dataUltimoPagamento = this.dataUltimoPagamento;
+        copia.taxaSindicalDiaria = this.taxaSindicalDiaria;
+        copia.debitoSindicalAcumulado = this.debitoSindicalAcumulado;
+        copia.dataAdmissao = this.dataAdmissao;
+
+        // ---------- Pagamento ----------
+        copia.metodoPagamento = this.metodoPagamento;
+        copia.banco = this.banco;
+        copia.agencia = this.agencia;
+        copia.contaCorrente = this.contaCorrente;
+
+        // ---------- Listas (deep copy) ----------
+        copia.registrosDeHoras = new ArrayList<>();
+        for (RegistroDeHoras r : this.registrosDeHoras) {
+            copia.registrosDeHoras.add(r.copiar());
+        }
+
+        copia.vendas = new ArrayList<>();
+        for (Venda v : this.vendas) {
+            copia.vendas.add(v.copiar());
+        }
+
+        copia.taxasServico = new ArrayList<>();
+        for (TaxaServico t : this.taxasServico) {
+            copia.taxasServico.add(t.copiar());
+        }
+
+        return copia;
+    }
+
     public Empregado(String id, String nome, String endereco, String tipo, double salario) {
         this.id = id;
         this.nome = nome;

@@ -6,6 +6,10 @@ public class TaxaServico {
     private LocalDate data;
     private double valor;
 
+    public TaxaServico copiar() {
+        return new TaxaServico(this.data, this.valor);
+    }
+
     public TaxaServico(LocalDate data, double valor) {
         this.data = data;
         this.valor = valor;

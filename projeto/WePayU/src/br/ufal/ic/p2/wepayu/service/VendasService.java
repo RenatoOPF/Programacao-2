@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -116,6 +118,12 @@ public class VendasService {
         return String.format("%.2f", total).replace('.', ',');
     }
 
+    public void limpar() {
+        for (Empregado e : empregadosMap.values()) {
+            e.getVendas().clear();
+        }
+    }
+
     public void zerar() {
         for (Empregado e : empregadosMap.values()) {
             e.getVendas().clear();
@@ -145,5 +153,28 @@ public class VendasService {
         } catch (DateTimeParseException ex) {
             throw new DataInvalidaException("Data " + tipo + " invalida.");
         }
+    }
+
+    // ---------- Clone e Restaurar ----------
+    public Map<String, List<Venda>> cloneVendas() {
+        Map<String, List<Venda>> clone = new HashMap<>();
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            List<Venda> listaClone = new ArrayList<>();
+            for (Venda v : entry.getValue().getVendas()) {
+                listaClone.add(v.copiar()); // implementar copiar() em Venda
+            }
+            clone.put(entry.getKey(), listaClone);
+        }
+        return clone;
+    }
+
+    public void restaurarVendas(Map<String, List<Venda>> clone) {
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            entry.getValue().getVendas().clear();
+            if (clone.containsKey(entry.getKey())) {
+                entry.getValue().getVendas().addAll(clone.get(entry.getKey()));
+            }
+        }
+        salvar();
     }
 }

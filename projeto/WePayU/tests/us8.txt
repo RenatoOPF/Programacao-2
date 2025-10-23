@@ -124,6 +124,7 @@ expect 600,00 getVendasRealizadas emp=${id2} dataInicial=1/1/2005 dataFinal=1/12
 expectError "Data invalida." lancaVenda emp=${id2} data=32/2/2005 valor=100
 expect 600,00 getVendasRealizadas emp=${id2} dataInicial=1/1/2005 dataFinal=1/12/2005
 undo
+undo
 expect 0,00 getVendasRealizadas emp=${id2} dataInicial=1/1/2005 dataFinal=1/12/2005
 
 encerrarSistema

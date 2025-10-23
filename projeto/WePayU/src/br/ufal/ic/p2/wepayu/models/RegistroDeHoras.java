@@ -7,6 +7,10 @@ public class RegistroDeHoras {
     private double horasNormais;
     private double horasExtras;
 
+    public RegistroDeHoras copiar() {
+        return new RegistroDeHoras(this.data, this.horasNormais, this.horasExtras);
+    }
+
     public RegistroDeHoras(LocalDate data, double horasNormais, double horasExtras) {
         this.data = data;
         this.horasNormais = horasNormais;

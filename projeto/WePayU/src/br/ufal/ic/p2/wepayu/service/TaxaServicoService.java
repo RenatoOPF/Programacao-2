@@ -97,6 +97,10 @@ public class TaxaServicoService {
         return String.format("%.2f", total).replace('.', ',');
     }
 
+    public void limpar() {
+        empregadosMap.values().forEach(emp -> emp.getTaxasServico().clear());
+    }
+
     public void zerar() {
         empregadosMap.values().forEach(emp -> emp.getTaxasServico().clear());
         try (PrintWriter pw = new PrintWriter(new FileWriter("taxas.csv"))) {}
@@ -123,5 +127,28 @@ public class TaxaServicoService {
         } catch (DateTimeParseException ex) {
             throw new DataInvalidaException("Data " + tipo + " invalida.");
         }
+    }
+
+    // ---------- Clone e Restaurar ----------
+    public Map<String, List<TaxaServico>> cloneTaxas() {
+        Map<String, List<TaxaServico>> clone = new HashMap<>();
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            List<TaxaServico> listaClone = new ArrayList<>();
+            for (TaxaServico t : entry.getValue().getTaxasServico()) {
+                listaClone.add(t.copiar()); // implementar copiar() em TaxaServico
+            }
+            clone.put(entry.getKey(), listaClone);
+        }
+        return clone;
+    }
+
+    public void restaurarTaxas(Map<String, List<TaxaServico>> clone) {
+        for (Map.Entry<String, Empregado> entry : empregadosMap.entrySet()) {
+            entry.getValue().getTaxasServico().clear();
+            if (clone.containsKey(entry.getKey())) {
+                entry.getValue().getTaxasServico().addAll(clone.get(entry.getKey()));
+            }
+        }
+        salvar();
     }
 }
